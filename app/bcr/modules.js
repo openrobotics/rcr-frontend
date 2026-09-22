@@ -77,6 +77,7 @@ const {
 	getModuleDirectDeps,
 	getVersionDistances,
 	getYankedMap,
+	isPseudoModule,
 	refreshBcrSidePaneSymbols,
 } = goog.require("bcrfrontend.registry");
 const { formatDate, formatRelativePast } = goog.require("bcrfrontend.format");
@@ -1475,14 +1476,19 @@ class ModulesMapSelectNav extends SelectNav {
 	 */
 	createDom() {
 		const maintainers = createMaintainersMap(this.registry_);
+		let totalModules = 0;
 		let totalModuleVersions = 0;
 		for (const module of this.modules_.values()) {
+			if (isPseudoModule(module.getName())) {
+				continue;
+			}
+			totalModules++;
 			totalModuleVersions += module.getVersionsList().length;
 		}
 		this.setElementInternal(
 			soy.renderAsElement(modulesMapSelectNav, {
 				registry: this.registry_,
-				totalModules: this.modules_.size,
+				totalModules: totalModules,
 				totalModuleVersions: totalModuleVersions,
 				totalMaintainers: maintainers.size,
 				totalPeople: computeTotalPeople(this.registry_),
@@ -1799,6 +1805,9 @@ class ModuleSearchComponent extends ContentComponent {
 		const lowerTokens = tokens.map((t) => t.toLowerCase());
 
 		for (const module of this.registry_.getModulesList()) {
+			if (isPseudoModule(module.getName())) {
+				continue;
+			}
 			const name = module.getName().toLowerCase();
 			const description =
 				module.getRepositoryMetadata()?.getDescription()?.toLowerCase() || "";

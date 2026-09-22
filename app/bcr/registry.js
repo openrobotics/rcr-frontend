@@ -403,6 +403,7 @@ function computeTopPrimaryLanguages(registry, limit) {
 	const counts = new Map();
 	let tallied = 0;
 	for (const m of registry.getModulesList()) {
+		if (isPseudoModule(m.getName())) continue;
 		const latest = getLatestModuleVersion(m);
 		const lang = latest?.getRepositoryMetadata()?.getPrimaryLanguage();
 		if (!lang) continue;
@@ -532,6 +533,9 @@ function maintainerModuleVersions(registry, maintainer) {
 	const hasEmail = !strings.isEmpty(maintainer.getEmail());
 
 	registry.getModulesList().forEach((module) => {
+		if (isPseudoModule(module.getName())) {
+			return;
+		}
 		const metadata = module.getMetadata();
 		metadata.getMaintainersList().forEach((m) => {
 			if (hasGithub && maintainer.getGithub() === m.getGithub()) {
@@ -564,13 +568,30 @@ function createModuleVersionMap(module) {
 exports.createModuleVersionMap = createModuleVersionMap;
 
 /**
+ * Check if a module is a synthetic Bazel pseudo-module (not a real registry package).
+ * @param {string} name
+ * @returns {boolean}
+ */
+function isPseudoModule(name) {
+	return name === "bazel_tools" || name === "_builtins";
+}
+exports.isPseudoModule = isPseudoModule;
+
+/**
  * @param {!Registry} registry
  * @returns {!Array<!ModuleVersion>}
  */
 function getLatestModuleVersions(registry) {
-	return registry.getModulesList().map((module) => {
-		return module.getVersionsList()[0];
-	});
+	const result = [];
+	for (const module of registry.getModulesList()) {
+		if (isPseudoModule(module.getName())) {
+			continue;
+		}
+		if (module.getVersionsList().length > 0) {
+			result.push(module.getVersionsList()[0]);
+		}
+	}
+	return result;
 }
 exports.getLatestModuleVersions = getLatestModuleVersions;
 

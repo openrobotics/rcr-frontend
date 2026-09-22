@@ -1,6 +1,6 @@
 > [!IMPORTANT]
 > This is a fork of the [bcr-frontend](https://github.com/bazel-contrib/bcr-frontend) repo, designed to index the
-> [ROS Central Registry](https://github.com/intrinsic-opensource/ros-central-registry). If you are looking for the
+> [ROS Central Registry](https://github.com/openrobotics/ros-central-registry). If you are looking for the
 > original upstream repo, please visit this link: https://github.com/bazel-contrib/bcr-frontend.
 
 

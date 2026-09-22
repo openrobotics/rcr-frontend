@@ -314,7 +314,7 @@ function computeMaintainerActivity(registry, maintainer) {
 			isNew: item.m.getVersionsList().length === 1,
 			linkUrl: `/modules/${item.v.getName()}/${item.v.getVersion()}`,
 			pullRequestUrl: pr
-				? `https://github.com/intrinsic-opensource/ros-central-registry/pull/${pr}`
+				? `https://github.com/openrobotics/ros-central-registry/pull/${pr}`
 				: "",
 			displayName: item.v.getName(),
 		};

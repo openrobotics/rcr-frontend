@@ -65,9 +65,12 @@ jobs:
       run: make bcr_init bcr_clean bcr_update
 
     # //:bcr is the gazelle extension that walks the registry and generates
-    # //data/bazel-central-registry/modules:modules.
+    # //data/bazel-central-registry/modules:modules. It needs a PAT with no
+    # scope in order to query metadata about commits and users.
     - name: Generate registry BUILD files
       run: bazel run //:bcr
+      env:
+        GITHUB_TOKEN: ${{ secrets.RCR_GITHUB_TOKEN }}
 
     # release_type=production enables minification plus home/module-page
     # prerendering; --config=ci raises the prerender tab pool for CI-sized

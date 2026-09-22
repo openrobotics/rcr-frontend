@@ -25,6 +25,7 @@ const { moduleSearchRow, symbolSearchRow } = goog.require(
 	"soy.bcrfrontend.app",
 );
 const { sanitizeLanguageName } = goog.require("bcrfrontend.language");
+const { isPseudoModule } = goog.require("bcrfrontend.registry");
 
 /** @typedef {{file: !File, sym: !Symbol_, moduleVersion: string}} */
 let FileSymbol;
@@ -256,6 +257,9 @@ class UnifiedSearchHandler extends EventTarget {
 	addModules_(modules) {
 		for (const module of modules) {
 			const name = module.getName();
+			if (isPseudoModule(name)) {
+				continue;
+			}
 			this.entries_.set(name, {
 				kind: "module",
 				module,

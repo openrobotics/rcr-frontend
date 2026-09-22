@@ -17,6 +17,7 @@ const {
 	computeTotalSymbols,
 	createMaintainersMap,
 	createModuleMap,
+	isPseudoModule,
 	refreshBcrSidePaneSymbols,
 } = goog.require("bcrfrontend.registry");
 const { homeOverviewSelectNav, homeRecentTimeline, homeSelect } = goog.require(
@@ -112,14 +113,19 @@ class HomeOverviewSelectNav extends SelectNav {
 		const maintainers = createMaintainersMap(this.registry_);
 
 		let totalModuleVersions = 0;
+		let totalModules = 0;
 		for (const module of modules.values()) {
+			if (isPseudoModule(module.getName())) {
+				continue;
+			}
+			totalModules++;
 			totalModuleVersions += module.getVersionsList().length;
 		}
 
 		this.setElementInternal(
 			soy.renderAsElement(homeOverviewSelectNav, {
 				registry: this.registry_,
-				totalModules: modules.size,
+				totalModules: totalModules,
 				totalModuleVersions: totalModuleVersions,
 				totalMaintainers: maintainers.size,
 				totalPeople: computeTotalPeople(this.registry_),
@@ -231,6 +237,9 @@ function computeRecentlyUpdated(registry) {
 	/** @type {!Array<!{m: !Module, v: !ModuleVersion}>} */
 	const allVersions = [];
 	for (const module of modules.values()) {
+		if (isPseudoModule(module.getName())) {
+			continue;
+		}
 		for (const version of module.getVersionsList()) {
 			const commit = version.getCommit();
 			if (commit && commit.getDate()) {
@@ -253,7 +262,7 @@ function computeRecentlyUpdated(registry) {
 			isNew: item.m.getVersionsList().length === 1,
 			linkUrl: `/modules/${item.v.getName()}/${item.v.getVersion()}`,
 			pullRequestUrl: pr
-				? `https://github.com/intrinsic-opensource/ros-central-registry/pull/${pr}`
+				? `https://github.com/openrobotics/ros-central-registry/pull/${pr}`
 				: "",
 			displayName: item.v.getName(),
 		};
@@ -272,6 +281,9 @@ function computeRecentlyAdded(registry) {
 	/** @type {!Array<!{m: !Module, v: !ModuleVersion}>} */
 	const firsts = [];
 	for (const module of modules.values()) {
+		if (isPseudoModule(module.getName())) {
+			continue;
+		}
 		const versions = module.getVersionsList();
 		if (versions.length === 0) continue;
 		const first = versions[versions.length - 1];
@@ -294,7 +306,7 @@ function computeRecentlyAdded(registry) {
 			isNew: true,
 			linkUrl: `/modules/${item.v.getName()}/${item.v.getVersion()}`,
 			pullRequestUrl: pr
-				? `https://github.com/intrinsic-opensource/ros-central-registry/pull/${pr}`
+				? `https://github.com/openrobotics/ros-central-registry/pull/${pr}`
 				: "",
 			displayName: item.v.getName(),
 		};
