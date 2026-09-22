@@ -16,6 +16,7 @@ import {
     octiconDotFill16,
     octiconDotFill24,
     octiconFile16,
+    octiconFile24,
     octiconGear16,
     octiconGitCommit16,
     octiconListUnordered16,
@@ -165,6 +166,18 @@ import {
         <button type="button" class="btn BtnGroup-item" data-searchscope="symbols" aria-pressed="false">Symbols</button>
       </div>
     </form>
+  </div>
+  <div class="Header-item Header-item--right">
+    <a href="https://bazel.ros.org/docs" target="_blank" rel="noopener noreferrer"
+       class="Header-link" title="Documentation" aria-label="Documentation">
+      {octiconFile24()}
+    </a>
+  </div>
+  <div class="Header-item mr-0">
+    <a href="https://github.com/openrobotics/ros-central-registry" target="_blank" rel="noopener noreferrer"
+       class="Header-link" title="GitHub repository" aria-label="GitHub repository">
+      {octiconMarkGithub24()}
+    </a>
   </div>
 </div>
 {/template}
@@ -366,7 +379,7 @@ import {
       <span>Bazel Documentation</span>
     </a>
     <a class="Link--muted d-flex flex-items-center mb-2"
-       href="https://github.com/intrinsic-opensource/ros-central-registry/blob/main/README.md"
+       href="https://github.com/openrobotics/ros-central-registry/blob/main/README.md"
        target="_blank" rel="noopener noreferrer">
       <span class="mr-2">{octiconPencil16()}</span>
       <span>Contributing to the RCR</span>
@@ -378,7 +391,7 @@ import {
       <span>Bazel Module Documentation</span>
     </a>
     <a class="Link--muted d-flex flex-items-center mb-2"
-       href="https://github.com/intrinsic-opensource/ros-central-registry"
+       href="https://github.com/openrobotics/ros-central-registry"
        target="_blank" rel="noopener noreferrer">
       <span class="mr-2">{octiconMarkGithub16()}</span>
       <span>ROS Central Registry on GitHub</span>

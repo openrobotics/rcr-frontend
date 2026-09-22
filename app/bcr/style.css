@@ -11,6 +11,21 @@
 	padding-left: 8px !important;
 }
 
+.Header .Header-link {
+	color: var(--color-fg-muted);
+	display: flex;
+	align-items: center;
+}
+
+.Header .Header-link:hover,
+.Header .Header-link:focus {
+	color: var(--color-fg-default);
+}
+
+.Header-item--right {
+	margin-left: auto;
+}
+
 /* ========================================
  * Mobile Responsive Fixes
  * ======================================== */
@@ -24,6 +39,10 @@
 
 	.Header-item {
 		margin-right: 8px !important;
+	}
+
+	.Header-item.mr-0 {
+		margin-right: 0 !important;
 	}
 
 	.Header-item--full {

@@ -14,9 +14,12 @@ const ModuleVersion = goog.require(
 const Registry = goog.require("proto.build.stack.bazel.registry.v1.Registry");
 const jsunit = goog.require("goog.testing.jsunit");
 const testSuite = goog.require("goog.testing.testSuite");
-const { calculateAgeSummary, getVersionDistances } = goog.require(
-	"bcrfrontend.registry",
-);
+const {
+	calculateAgeSummary,
+	getLatestModuleVersions,
+	getVersionDistances,
+	isPseudoModule,
+} = goog.require("bcrfrontend.registry");
 
 testSuite({
 	teardown: () => {},
@@ -243,6 +246,42 @@ testSuite({
 		// Expected correct behavior:
 		// v331Info.versionsBehind should be 1 (only 33.2 is newer in BCR)
 		// NOT 52 (which would be the index if counting all metadata versions)
+	},
+
+	testIsPseudoModule: () => {
+		assertTrue(isPseudoModule("bazel_tools"));
+		assertTrue(isPseudoModule("_builtins"));
+		assertFalse(isPseudoModule("rules_rust"));
+		assertFalse(isPseudoModule("rules_go"));
+		assertFalse(isPseudoModule(""));
+	},
+
+	testGetLatestModuleVersions_filtersPseudoModules: () => {
+		const registry = new Registry();
+
+		const realModule = new Module();
+		realModule.setName("rules_rust");
+		const realVersion = new ModuleVersion();
+		realVersion.setVersion("1.0.0");
+		realModule.setVersionsList([realVersion]);
+
+		const bazelTools = new Module();
+		bazelTools.setName("bazel_tools");
+		const btVersion = new ModuleVersion();
+		btVersion.setVersion("8.0.0");
+		bazelTools.setVersionsList([btVersion]);
+
+		const builtins = new Module();
+		builtins.setName("_builtins");
+		const bVersion = new ModuleVersion();
+		bVersion.setVersion("8.0.0");
+		builtins.setVersionsList([bVersion]);
+
+		registry.setModulesList([realModule, bazelTools, builtins]);
+
+		const latest = getLatestModuleVersions(registry);
+		assertEquals(1, latest.length);
+		assertEquals("1.0.0", latest[0].getVersion());
 	},
 });
 
