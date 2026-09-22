@@ -16,6 +16,7 @@ import {
     octiconDotFill16,
     octiconDotFill24,
     octiconFile16,
+    octiconFile24,
     octiconGear16,
     octiconGitCommit16,
     octiconListUnordered16,
@@ -165,6 +166,18 @@ import {
         <button type="button" class="btn BtnGroup-item" data-searchscope="symbols" aria-pressed="false">Symbols</button>
       </div>
     </form>
+  </div>
+  <div class="Header-item Header-item--right">
+    <a href="https://bazel.ros.org/docs" target="_blank" rel="noopener noreferrer"
+       class="Header-link" title="Documentation" aria-label="Documentation">
+      {octiconFile24()}
+    </a>
+  </div>
+  <div class="Header-item mr-0">
+    <a href="https://github.com/openrobotics/ros-central-registry" target="_blank" rel="noopener noreferrer"
+       class="Header-link" title="GitHub repository" aria-label="GitHub repository">
+      {octiconMarkGithub24()}
+    </a>
   </div>
 </div>
 {/template}
