@@ -1,5 +1,5 @@
 # git sparse-checkout set --no-cone modules
 [submodule "data/bazel-central-registry"]
 	path = data/bazel-central-registry
-	url = .git
+	url = https://github.com/openrobotics/ros-central-registry.git
 	sparse-checkout = modules

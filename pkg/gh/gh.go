@@ -603,7 +603,7 @@ func FetchPRAuthorsBatch(ctx context.Context, token string, prNumbers []int) (ma
 	// Build the GraphQL query
 	var queryBuilder bytes.Buffer
 	queryBuilder.WriteString("query {\n")
-	queryBuilder.WriteString(`  repository(owner: "intrinsic-opensource", name: "ros-central-registry") {` + "\n")
+	queryBuilder.WriteString(`  repository(owner: "openrobotics", name: "ros-central-registry") {` + "\n")
 
 	for i, prNum := range prNumbers {
 		queryBuilder.WriteString(fmt.Sprintf(`    pr%d: pullRequest(number: %d) {
