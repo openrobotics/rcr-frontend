@@ -69,6 +69,7 @@ go_test(
     name = "bcr_test",
     srcs = [
         "attestations_fetch_test.go",
+        "bcr_test.go",
         "registry_backup_test.go",
         "repository_test.go",
         "stardoc_test.go",

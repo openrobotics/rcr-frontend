@@ -1112,6 +1112,7 @@ type ModuleVersion struct {
 	Commit               *ModuleCommit               `protobuf:"bytes,12,opt,name=commit,proto3" json:"commit,omitempty"`
 	RepositoryMetadata   *RepositoryMetadata         `protobuf:"bytes,13,opt,name=repository_metadata,json=repositoryMetadata,proto3" json:"repository_metadata,omitempty"`
 	IsLatestVersion      bool                        `protobuf:"varint,14,opt,name=is_latest_version,json=isLatestVersion,proto3" json:"is_latest_version,omitempty"`
+	RegistryPath         string                      `protobuf:"bytes,15,opt,name=registry_path,json=registryPath,proto3" json:"registry_path,omitempty"`
 	unknownFields        protoimpl.UnknownFields
 	sizeCache            protoimpl.SizeCache
 }
@@ -1242,6 +1243,13 @@ func (x *ModuleVersion) GetIsLatestVersion() bool {
 		return x.IsLatestVersion
 	}
 	return false
+}
+
+func (x *ModuleVersion) GetRegistryPath() string {
+	if x != nil {
+		return x.RegistryPath
+	}
+	return ""
 }
 
 type ModuleCommit struct {
@@ -2719,7 +2727,7 @@ const file_build_stack_bazel_registry_v1_bcr_proto_rawDesc = "" +
 	"parseError\x1ax\n" +
 	"\x11AttestationsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12M\n" +
-	"\x05value\x18\x02 \x01(\v27.build.stack.bazel.registry.v1.Attestations.AttestationR\x05value:\x028\x01\"\xbf\x06\n" +
+	"\x05value\x18\x02 \x01(\v27.build.stack.bazel.registry.v1.Attestations.AttestationR\x05value:\x028\x01\"\xe4\x06\n" +
 	"\rModuleVersion\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x18\n" +
 	"\aversion\x18\x02 \x01(\tR\aversion\x12/\n" +
@@ -2735,7 +2743,8 @@ const file_build_stack_bazel_registry_v1_bcr_proto_rawDesc = "" +
 	"\boverride\x18\v \x03(\v27.build.stack.bazel.registry.v1.ModuleDependencyOverrideR\boverride\x12C\n" +
 	"\x06commit\x18\f \x01(\v2+.build.stack.bazel.registry.v1.ModuleCommitR\x06commit\x12b\n" +
 	"\x13repository_metadata\x18\r \x01(\v21.build.stack.bazel.registry.v1.RepositoryMetadataR\x12repositoryMetadata\x12*\n" +
-	"\x11is_latest_version\x18\x0e \x01(\bR\x0fisLatestVersion\"\xb5\x01\n" +
+	"\x11is_latest_version\x18\x0e \x01(\bR\x0fisLatestVersion\x12#\n" +
+	"\rregistry_path\x18\x0f \x01(\tR\fregistryPath\"\xb5\x01\n" +
 	"\fModuleCommit\x12\x12\n" +
 	"\x04sha1\x18\x01 \x01(\tR\x04sha1\x12\x12\n" +
 	"\x04date\x18\x02 \x01(\tR\x04date\x12\x18\n" +

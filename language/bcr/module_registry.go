@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"strings"
 
 	bzpb "github.com/bazel-contrib/bcr-frontend/build/stack/bazel/registry/v1"
 	gitpkg "github.com/bazel-contrib/bcr-frontend/pkg/git"
@@ -83,8 +84,11 @@ func (ext *bcrExtension) loadBcrSubmoduleMetadata(cfg *config.Config) (*bzpb.Reg
 }
 
 // resolveModuleRegistryRule resolves the deps and bazel_versions attributes for
-// a module_registry rule by looking up module_metadata and bazel_version rules
-func resolveModuleRegistryRule(r *rule.Rule, ix *resolve.RuleIndex) {
+// a module_registry rule by looking up module_metadata and bazel_version rules.
+// modulesRoot is the workspace-relative primary modules dir; when a module
+// name is found both there and in an extra modules dir (e.g. bcr_staging), the
+// primary copy wins.
+func resolveModuleRegistryRule(r *rule.Rule, ix *resolve.RuleIndex, modulesRoot string) {
 	// Get the subdirs private attribute
 	subdirsRaw := r.PrivateAttr("subdirs")
 	if subdirsRaw == nil {
@@ -113,7 +117,18 @@ func resolveModuleRegistryRule(r *rule.Rule, ix *resolve.RuleIndex) {
 			continue
 		}
 
-		deps = append(deps, results[0].Label.String())
+		chosen := results[0]
+		if len(results) > 1 {
+			for _, res := range results {
+				if strings.HasPrefix(res.Label.Pkg, modulesRoot+"/") {
+					chosen = res
+					break
+				}
+			}
+			log.Printf("module %s is defined in %d locations; using %s", moduleName, len(results), chosen.Label)
+		}
+
+		deps = append(deps, chosen.Label.String())
 	}
 
 	// Set the deps attr

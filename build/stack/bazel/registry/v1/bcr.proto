@@ -299,6 +299,10 @@ message ModuleVersion {
     RepositoryMetadata repository_metadata = 13;
     // Whether this is the latest version of the module
     bool is_latest_version = 14;
+    // Directory of this module version relative to the registry repository
+    // root (e.g. "modules/foo/1.2.3" or "bcr_staging/modules/foo/1.2.3").
+    // Used to build links to overlay/patch files in the registry repo.
+    string registry_path = 15;
 }
 
 // Git commit metadata for a MODULE.bazel file submission

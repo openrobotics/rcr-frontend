@@ -38,6 +38,7 @@ type Config struct {
 	DocsUrlStatusMessage     string
 	SourceCommitSha          string
 	IsLatestVersion          bool
+	RegistryPath             string
 }
 
 func main() {
@@ -76,6 +77,7 @@ func run(args []string) error {
 	}
 
 	module.IsLatestVersion = cfg.IsLatestVersion
+	module.RegistryPath = cfg.RegistryPath
 
 	// Read source.json file (optional)
 	if cfg.SourceJsonFile != "" {
@@ -179,6 +181,7 @@ func parseFlags(args []string) (cfg Config, err error) {
 	fs.StringVar(&cfg.DocsUrlStatusMessage, "docs_url_status_message", "", "HTTP status message for the docs URL (optional)")
 	fs.StringVar(&cfg.SourceCommitSha, "source_commit_sha", "", "the git commit SHA for the source URL (resolved from tags/releases, optional)")
 	fs.BoolVar(&cfg.IsLatestVersion, "is_latest_version", false, "if true, marks this module version as the latest one")
+	fs.StringVar(&cfg.RegistryPath, "registry_path", "", "directory of this module version relative to the registry repo root (e.g. modules/foo/1.0)")
 
 	fs.Usage = func() {
 		fmt.Fprintf(flag.CommandLine.Output(), "usage: %s @PARAMS_FILE", toolName)
@@ -201,4 +204,3 @@ func mustFindDependencyByName(module *bzpb.ModuleVersion, name string) *bzpb.Mod
 	log.Fatalf("unable to find dependency %s in module version %s/%s (this is a bug)", name, module.Name, module.Version)
 	return nil
 }
-

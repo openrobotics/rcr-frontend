@@ -49,6 +49,7 @@ func NewLanguage() language.Language {
 		fetchAttestations:        true,
 		moduleMetadataRules:      make(map[moduleName]*protoRule[*bzpb.ModuleMetadata]),
 		moduleVersionRules:       make(map[moduleID]*protoRule[*bzpb.ModuleVersion]),
+		moduleVersionDirs:        make(map[moduleID]string),
 		moduleSourceRules:        make(map[moduleID]*protoRule[*bzpb.ModuleSource]),
 		bazelReleasesByVersion:   make(map[string]*bzpb.BazelRelease),
 		prAuthorsByPR:            make(map[int]*bzpb.PRAuthor),
@@ -58,8 +59,10 @@ func NewLanguage() language.Language {
 // bcrExtension implements language.Language.
 type bcrExtension struct {
 	name                      string
-	repoRoot                  string // copy of config.RepoRoot
-	modulesRoot               string
+	repoRoot                  string          // copy of config.RepoRoot
+	modulesRoot               string          // workspace-relative path to the primary modules dir (<registryRoot>/modules)
+	extraModulesDirs          stringSliceFlag // registry-relative paths of additional modules dirs (e.g. "bcr_staging/modules")
+	extraModulesRoots         []string        // workspace-relative paths of extraModulesDirs
 	resourceStatusSetFile     string
 	repositoryMetadataSetFile string
 	bazelReleaseSetFile       string
@@ -79,6 +82,7 @@ type bcrExtension struct {
 	repositoriesMetadataByID  map[repositoryID]*bzpb.RepositoryMetadata       // tracks unique repository strings (e.g., "github:org/repo")
 	moduleMetadataRules       map[moduleName]*protoRule[*bzpb.ModuleMetadata] // tracks module metadata rules
 	moduleVersionRules        map[moduleID]*protoRule[*bzpb.ModuleVersion]    // tracks module_version rules by ID
+	moduleVersionDirs         map[moduleID]string                             // workspace-relative directory of each module version (e.g. "data/bcr/bcr_staging/modules/foo/1.0")
 	moduleSourceRules         map[moduleID]*protoRule[*bzpb.ModuleSource]     // tracks module_source rules by ID
 	moduleIDsByDocUrl         map[string][]moduleID                           // tracks docs http_archives to fetch
 	moduleIDsBySourceUrl      map[string][]moduleID                           // tracks URLs for starlark_repository
@@ -115,6 +119,8 @@ func (ext *bcrExtension) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.C
 		"registry-root", "", "root dir for the bcr registry")
 	fs.StringVar(&ext.registryURL,
 		"registry-url", "", "base URL for the deployed registry")
+	fs.Var(&ext.extraModulesDirs,
+		"extra-modules-dir", "additional modules directory, relative to --registry-root, whose modules are merged into the registry (repeatable, e.g. 'bcr_staging/modules')")
 	fs.StringVar(&ext.registrySourceURL,
 		"registry-source-url", "https://registry-preview.bazel.build/registry.pb.gz", "URL to fetch backup registry data from (for repository metadata fallback)")
 	fs.StringVar(&ext.resourceStatusSetFile,
@@ -151,6 +157,9 @@ func (ext *bcrExtension) CheckFlags(fs *flag.FlagSet, c *config.Config) error {
 		return fmt.Errorf("--registry-root is required")
 	}
 	ext.modulesRoot = filepath.Join(ext.registryRoot, "modules")
+	for _, dir := range ext.extraModulesDirs {
+		ext.extraModulesRoots = append(ext.extraModulesRoots, filepath.Join(ext.registryRoot, dir))
+	}
 
 	ext.configureGithubClient()
 	ext.readResourceStatusCacheFile()
@@ -290,7 +299,7 @@ func (ext *bcrExtension) Resolve(
 	case "module_metadata":
 		resolveModuleMetadataRule(r, ix)
 	case "module_registry":
-		resolveModuleRegistryRule(r, ix)
+		resolveModuleRegistryRule(r, ix, ext.modulesRoot)
 	case "repository_metadata":
 		resolveRepositoryMetadataRule(r, ix, ext.repositoriesMetadataByID)
 	case "module_version":
@@ -326,7 +335,9 @@ func (ext *bcrExtension) GenerateRules(args language.GenerateArgs) language.Gene
 		rules = append(rules, repoRules...)
 	}
 
-	// Generate cycles and the module registry in the modules root package
+	// Generate cycles and the module registry in the modules root package.
+	// Modules living in any --extra-modules-dir (e.g. bcr_staging/modules)
+	// are folded into this same registry so they show up in the index.
 	if args.Rel == ext.modulesRoot {
 		var cycleRules []*rule.Rule
 		if generateModuleDependencyCycleRules {
@@ -336,7 +347,8 @@ func (ext *bcrExtension) GenerateRules(args language.GenerateArgs) language.Gene
 				rules = append(rules, cycleRules...)
 			}
 		}
-		rules = append(rules, ext.makeModuleRegistryRule(path.Base(args.Rel), args.Subdirs, ext.registryURL, cycleRules, args.Config))
+		subdirs := ext.collectModuleNames(args.Subdirs)
+		rules = append(rules, ext.makeModuleRegistryRule(path.Base(args.Rel), subdirs, ext.registryURL, cycleRules, args.Config))
 	}
 
 	// create module_metadata rule in the module root
@@ -495,10 +507,22 @@ func (ext *bcrExtension) GenerateRules(args language.GenerateArgs) language.Gene
 		// Add module version rule with references to dependencies, source,
 		// attestations, presubmit, and commit
 		moduleVersionRule := makeModuleVersionRule(module, version, depRules, sourceRule, attestationsRule, presubmitRule, commitRule, "MODULE.bazel")
+		// Record where this version lives relative to the registry repo root
+		// (e.g. "bcr_staging/modules/foo/1.0") so the UI can link to
+		// overlay/patch files at the right path.
+		if registryPath, err := filepath.Rel(ext.registryRoot, args.Rel); err == nil {
+			module.RegistryPath = filepath.ToSlash(registryPath)
+			moduleVersionRule.SetAttr("registry_path", module.RegistryPath)
+		} else {
+			log.Printf("warning: computing registry path for %s: %v", args.Rel, err)
+		}
 		rules = append(rules, moduleVersionRule)
 
-		// Track the module_version rule for later MVS annotation
+		// Track the module_version rule for later MVS annotation, and where it
+		// lives on disk (needed to locate overlays for modules outside the
+		// primary modules dir).
 		ext.moduleVersionRules[id] = newProtoRule(moduleVersionRule, module)
+		ext.moduleVersionDirs[id] = args.Rel
 
 		// Generate bazel_version rule for Bazel pseudo-modules
 		if module.Name == "bazel_tools" {
@@ -520,4 +544,69 @@ func (ext *bcrExtension) GenerateRules(args language.GenerateArgs) language.Gene
 
 func inOverlayDir(rel string) bool {
 	return strings.Contains(rel, "/overlay")
+}
+
+// collectModuleNames returns the sorted, de-duplicated union of the given
+// subdirs of the primary modules dir and the subdirs of every
+// --extra-modules-dir. Each name is later resolved to its module_metadata rule
+// by resolveModuleRegistryRule.
+func (ext *bcrExtension) collectModuleNames(primarySubdirs []string) []string {
+	seen := make(map[string]bool, len(primarySubdirs))
+	names := make([]string, 0, len(primarySubdirs))
+	add := func(name string) {
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	for _, name := range primarySubdirs {
+		add(name)
+	}
+	for _, root := range ext.extraModulesRoots {
+		dir := filepath.Join(ext.repoRoot, root)
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				log.Printf("warning: reading extra modules dir %s: %v", dir, err)
+			}
+			continue
+		}
+		count := 0
+		for _, entry := range entries {
+			if !entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
+				continue
+			}
+			add(entry.Name())
+			count++
+		}
+		log.Printf("Merged %d modules from %s into the registry", count, root)
+	}
+	sort.Strings(names)
+	return names
+}
+
+// moduleVersionDir returns the workspace-relative directory of a module
+// version, falling back to <modulesRoot>/<name>/<version> when the version
+// was not visited during generation (e.g. pseudo-modules).
+func (ext *bcrExtension) moduleVersionDir(name, version string) string {
+	if dir, ok := ext.moduleVersionDirs[newModuleID(name, version)]; ok {
+		return dir
+	}
+	return filepath.Join(ext.modulesRoot, name, version)
+}
+
+// stringSliceFlag is a repeatable string flag.
+type stringSliceFlag []string
+
+func (s *stringSliceFlag) String() string {
+	return strings.Join(*s, ",")
+}
+
+func (s *stringSliceFlag) Set(value string) error {
+	value = strings.Trim(filepath.Clean(value), "/")
+	if value == "" || value == "." {
+		return fmt.Errorf("extra modules dir must be a non-empty relative path")
+	}
+	*s = append(*s, value)
+	return nil
 }

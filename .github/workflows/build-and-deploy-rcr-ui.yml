@@ -79,7 +79,7 @@ jobs:
       run: bazel build //app/bcr:release --config=ci --//app/bcr:release_type=production
 
     # The make targets above sparse-checkout the submodule down to `modules`
-    # only, which removes docs/ (and MODULE.bazel, so it stops being its own
+    # and `bcr_staging/modules` only, which removes docs/ (and MODULE.bazel, so it stops being its own
     # Bazel workspace). Lift that here - after the parent build is done - so
     # the docs come from the same revision bcr_update pulled, without the
     # restored MODULE.bazel acting as a repo boundary that would hide

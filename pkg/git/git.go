@@ -84,14 +84,17 @@ func GetRemoteURL(ctx context.Context, repoPath string) (string, error) {
 
 // GetAllModuleCommits returns commit information for all MODULE.bazel files in one git call
 // This is much faster than calling GetFileCreationCommit for each file individually
-// Returns a map of file path -> commit info
-func GetAllModuleCommits(ctx context.Context, repoPath, pattern string) (map[string]*bzpb.ModuleCommit, error) {
+// Returns a map of file path -> commit info. One or more pathspec patterns
+// (relative to repoPath) may be given; they are OR'd together.
+func GetAllModuleCommits(ctx context.Context, repoPath string, patterns ...string) (map[string]*bzpb.ModuleCommit, error) {
 	// Use git log with --name-only to get all commits that touched MODULE.bazel files
 	// Format: commit info line, blank line, file names
 	// --diff-filter=A: Only commits where files were Added
 	// --name-only: Show only file names
-	output, err := exec.CommandContext(ctx, "git", "-C", repoPath,
-		"log", "--all", "--diff-filter=A", "--name-only", "--format=%H|%cI|%aE|%s|FILE_MARKER", "--", pattern).Output()
+	args := []string{"-C", repoPath,
+		"log", "--all", "--diff-filter=A", "--name-only", "--format=%H|%cI|%aE|%s|FILE_MARKER", "--"}
+	args = append(args, patterns...)
+	output, err := exec.CommandContext(ctx, "git", args...).Output()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get git log: %w", err)
 	}

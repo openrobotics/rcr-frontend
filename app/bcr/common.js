@@ -5,6 +5,9 @@ goog.module("bcrfrontend.common");
 
 const InputHandler = goog.require("goog.ui.ac.InputHandler");
 const Keyboard = goog.require("stack.ui.Keyboard");
+const ModuleVersion = goog.require(
+	"proto.build.stack.bazel.registry.v1.ModuleVersion",
+);
 const Registry = goog.require("proto.build.stack.bazel.registry.v1.Registry");
 const Select = goog.require("stack.ui.Select");
 const dom = goog.require("goog.dom");
@@ -182,3 +185,19 @@ async function gzipDecode(gzipData) {
 	return decompressed;
 }
 exports.gzipDecode = gzipDecode;
+
+/**
+ * Returns the directory of a module version relative to the registry repo
+ * root, e.g. "modules/foo/1.0" or "bcr_staging/modules/foo/1.0". Prefers the
+ * registry_path recorded at index time; falls back to the conventional
+ * modules/<name>/<version> layout for protos built before that field existed.
+ *
+ * @param {!ModuleVersion} moduleVersion
+ * @return {string}
+ */
+function moduleVersionRegistryPath(moduleVersion) {
+	const path = moduleVersion.getRegistryPath();
+	if (path) return path;
+	return `modules/${moduleVersion.getName()}/${moduleVersion.getVersion()}`;
+}
+exports.moduleVersionRegistryPath = moduleVersionRegistryPath;

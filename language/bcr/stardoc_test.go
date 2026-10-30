@@ -13,7 +13,7 @@ func TestMakeOverlayBzlRepository(t *testing.T) {
 		registryRoot  = "data/bazel-central-registry"
 	)
 	lbl := makeBzlRepositoryModulesLabel(moduleName, moduleVersion)
-	r := makeOverlayBzlRepository(lbl, moduleName, moduleVersion, registryRoot)
+	r := makeOverlayBzlRepository(lbl, registryRoot+"/modules/"+moduleName+"/"+moduleVersion+"/overlay")
 
 	if got, want := r.Kind(), starlarkRepositoryLocalKind; got != want {
 		t.Errorf("kind = %q, want %q", got, want)
@@ -71,4 +71,3 @@ func TestMakeBzlRepository(t *testing.T) {
 		t.Errorf("path should be empty on archive kind, got %q", got)
 	}
 }
-
