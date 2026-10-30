@@ -34,7 +34,9 @@ const dom = goog.require("goog.dom");
 const events = goog.require("goog.events");
 const path = goog.require("goog.string.path");
 const soy = goog.require("goog.soy");
-const { getApplication } = goog.require("bcrfrontend.common");
+const { getApplication, moduleVersionRegistryPath } = goog.require(
+	"bcrfrontend.common",
+);
 const { Component, Route } = goog.require("stack.ui");
 const { ContentComponent } = goog.require("bcrfrontend.ContentComponent");
 const { ContentSelect } = goog.require("bcrfrontend.ContentSelect");
@@ -2056,7 +2058,7 @@ class BzlFileSourceComponent extends GitHubSourceFileComponent {
 		if (!repoUrl || !sha) return null;
 		const parsed = parseGitHubRepoUrl(repoUrl);
 		if (!parsed) return null;
-		const path = `modules/${this.moduleVersion_.getName()}/${this.moduleVersion_.getVersion()}/overlay/${this.filePath_}`;
+		const path = `${moduleVersionRegistryPath(this.moduleVersion_)}/overlay/${this.filePath_}`;
 		return {
 			rawUrl: `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${sha}/${path}`,
 			blobUrl: `https://github.com/${parsed.owner}/${parsed.repo}/blob/${sha}/${path}`,

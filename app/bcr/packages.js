@@ -22,7 +22,9 @@ const path = goog.require("goog.string.path");
 const soy = goog.require("goog.soy");
 const { Component, Route } = goog.require("stack.ui");
 const { ContentSelect } = goog.require("bcrfrontend.ContentSelect");
-const { getApplication } = goog.require("bcrfrontend.common");
+const { getApplication, moduleVersionRegistryPath } = goog.require(
+	"bcrfrontend.common",
+);
 const { highlightAll } = goog.require("bcrfrontend.syntax");
 const { generateTargetCall, loadLabelToUrlKey, valueToStarlark } = goog.require(
 	"bcrfrontend.starlark",
@@ -275,7 +277,7 @@ function computeSourceUrl(registry, moduleVersion, pkg, target) {
 		const repoUrl = registry.getRepositoryUrl();
 		const sha = registry.getCommitSha();
 		if (!repoUrl || !sha) return "";
-		return `${repoUrl}/blob/${sha}/modules/${moduleVersion.getName()}/${moduleVersion.getVersion()}/overlay/${relPath}${lineFrag}`;
+		return `${repoUrl}/blob/${sha}/${moduleVersionRegistryPath(moduleVersion)}/overlay/${relPath}${lineFrag}`;
 	}
 
 	// Upstream source via the module's RepositoryMetadata, mirroring

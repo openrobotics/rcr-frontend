@@ -26,6 +26,7 @@ const Registry = goog.require("proto.build.stack.bazel.registry.v1.Registry");
 const dom = goog.require("goog.dom");
 const soy = goog.require("goog.soy");
 const { Component, Route } = goog.require("stack.ui");
+const { moduleVersionRegistryPath } = goog.require("bcrfrontend.common");
 const { ContentSelect } = goog.require("bcrfrontend.ContentSelect");
 const { GitHubSourceFileComponent, parseGitHubRepoUrl } = goog.require(
 	"bcrfrontend.githubsourcefile",
@@ -276,7 +277,7 @@ class SourceArchiveFileComponent extends GitHubSourceFileComponent {
 			super.fetchSource_();
 			return;
 		}
-		const path = `modules/${this.moduleVersion_.getName()}/${this.moduleVersion_.getVersion()}/${this.kind_}/${this.filePath_}`;
+		const path = `${moduleVersionRegistryPath(this.moduleVersion_)}/${this.kind_}/${this.filePath_}`;
 		const rawUrl = `https://raw.githubusercontent.com/${parsed.owner}/${parsed.repo}/${sha}/${path}`;
 		const blobUrl = `https://github.com/${parsed.owner}/${parsed.repo}/blob/${sha}/${path}`;
 		this.templateData_ = {

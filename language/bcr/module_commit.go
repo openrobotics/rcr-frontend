@@ -91,7 +91,11 @@ func (ext *bcrExtension) readModuleCommits(c *config.Config) {
 	ctx := context.Background()
 	submodulePath := filepath.Join(c.RepoRoot, ext.registryRoot)
 	log.Printf("Preloading module commits from %s...", submodulePath)
-	commits, err := gitpkg.GetAllModuleCommits(ctx, submodulePath, "modules/*/*/MODULE.bazel")
+	patterns := []string{"modules/*/*/MODULE.bazel"}
+	for _, dir := range ext.extraModulesDirs {
+		patterns = append(patterns, filepath.Join(dir, "*", "*", "MODULE.bazel"))
+	}
+	commits, err := gitpkg.GetAllModuleCommits(ctx, submodulePath, patterns...)
 	if err != nil {
 		log.Printf("warning: failed to preload module commits: %v", err)
 		ext.moduleCommits = make(map[moduleBazelRelPath]*bzpb.ModuleCommit)

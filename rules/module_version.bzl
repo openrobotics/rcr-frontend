@@ -27,6 +27,10 @@ def _compile_action(ctx, source, deps, attestations, presubmit, commit):
     if ctx.attr.is_latest_version:
         args.add("--is_latest_version")
 
+    if ctx.attr.registry_path:
+        args.add("--registry_path")
+        args.add(ctx.attr.registry_path)
+
     # All of the module dependency info is in the MODULE.bazel file, but the
     # 'unresolved' property is discovered during gazelle resolution.  Pass that
     # information into the compiler.
@@ -188,6 +192,9 @@ module_version = rule(
         ),
         "is_latest_version": attr.bool(
             doc = "bool: Whether this is the latest version of the module",
+        ),
+        "registry_path": attr.string(
+            doc = "str: Directory of this module version relative to the registry repo root (e.g. 'modules/foo/1.0' or 'bcr_staging/modules/foo/1.0')",
         ),
         "compatibility_level": attr.int(
             doc = "int: Module compatibility level",

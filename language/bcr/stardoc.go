@@ -205,9 +205,10 @@ func (ext *bcrExtension) handleSourceUrlStatus(url string, moduleIDs []moduleID,
 		// via .local — we avoid downloading the upstream archive at all in that
 		// case.
 		var bzlRule *rule.Rule
-		overlayDir := filepath.Join(ext.repoRoot, ext.registryRoot, "modules", module.Name, module.Version, "overlay")
+		overlayRel := filepath.Join(ext.moduleVersionDir(module.Name, module.Version), "overlay")
+		overlayDir := filepath.Join(ext.repoRoot, overlayRel)
 		if len(source.Overlay) > 0 && ext.registryRoot != "" && dirExists(overlayDir) {
-			bzlRule = makeOverlayBzlRepository(lbl, module.Name, module.Version, ext.registryRoot)
+			bzlRule = makeOverlayBzlRepository(lbl, overlayRel)
 		} else {
 			bzlRule = makeBzlRepository(lbl, module, source)
 		}
@@ -714,14 +715,15 @@ func makeBzlRepository(from label.Label, moduleVersion *bzpb.ModuleVersion, sour
 // fallback when the upstream source repo doesn't advertise Starlark but the
 // BCR overlay carries .bzl files that should be documented.
 //
-// registryRoot is the workspace-relative path to the BCR root (e.g.
-// "data/bazel-central-registry"). Using a local path avoids ~449 parallel
-// fetches of the same github.com archive (which trip GitHub's 429 rate
-// limit) and skips redundant per-rule extraction of a 100MB tarball.
-func makeOverlayBzlRepository(from label.Label, moduleName, moduleVersion, registryRoot string) *rule.Rule {
+// overlayPath is the workspace-relative path to the overlay directory (e.g.
+// "data/bazel-central-registry/modules/foo/1.0/overlay"). Using a local path
+// avoids ~449 parallel fetches of the same github.com archive (which trip
+// GitHub's 429 rate limit) and skips redundant per-rule extraction of a 100MB
+// tarball.
+func makeOverlayBzlRepository(from label.Label, overlayPath string) *rule.Rule {
 	r := rule.NewRule(starlarkRepositoryLocalKind, from.Repo)
 
-	r.SetAttr("path", filepath.Join(registryRoot, "modules", moduleName, moduleVersion, "overlay"))
+	r.SetAttr("path", overlayPath)
 	r.SetAttr("build_file_generation", "preserve")
 	r.SetAttr("languages", []string{starlarkRepositoryLanguageName})
 	r.SetAttr("build_directives", []string{fmt.Sprintf("gazelle:%s_root", starlarkRepositoryLanguageName)})
@@ -939,4 +941,3 @@ func dirExists(path string) bool {
 	}
 	return info.IsDir()
 }
-
