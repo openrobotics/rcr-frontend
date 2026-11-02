@@ -68,6 +68,44 @@ func TestModuleVersionDirFallsBackToModulesRoot(t *testing.T) {
 	}
 }
 
+func TestSkipDocsForExtraModuleVersions(t *testing.T) {
+	primary := newModuleID("rclcpp", "1.0")
+	staging := newModuleID("qtbase", "6.8.0")
+	unknown := newModuleID("bazel_tools", "8.0.0") // pseudo-module, never visited
+	ext := &bcrExtension{
+		modulesRoot:       "reg/modules",
+		extraModulesRoots: []string{"reg/bcr_staging/modules"},
+		moduleVersionDirs: map[moduleID]string{
+			primary: "reg/modules/rclcpp/1.0",
+			staging: "reg/bcr_staging/modules/qtbase/6.8.0",
+		},
+	}
+
+	if ext.isExtraModuleVersion(primary) {
+		t.Error("primary module reported as extra")
+	}
+	if !ext.isExtraModuleVersion(staging) {
+		t.Error("staging module not reported as extra")
+	}
+	if ext.isExtraModuleVersion(unknown) {
+		t.Error("untracked module reported as extra")
+	}
+
+	// Default: extra-dir modules skip docs; everything else does not.
+	if ext.skipDocsForModuleVersion(primary) || ext.skipDocsForModuleVersion(unknown) {
+		t.Error("non-extra module should not skip docs")
+	}
+	if !ext.skipDocsForModuleVersion(staging) {
+		t.Error("extra module should skip docs by default")
+	}
+
+	// Opt-in restores docs for extra-dir modules.
+	ext.extraModulesDocs = true
+	if ext.skipDocsForModuleVersion(staging) {
+		t.Error("extra module should not skip docs when --extra-modules-docs is set")
+	}
+}
+
 func TestStringSliceFlagSet(t *testing.T) {
 	var f stringSliceFlag
 	if err := f.Set("bcr_staging/modules/"); err != nil {

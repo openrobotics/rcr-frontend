@@ -63,6 +63,7 @@ type bcrExtension struct {
 	modulesRoot               string          // workspace-relative path to the primary modules dir (<registryRoot>/modules)
 	extraModulesDirs          stringSliceFlag // registry-relative paths of additional modules dirs (e.g. "bcr_staging/modules")
 	extraModulesRoots         []string        // workspace-relative paths of extraModulesDirs
+	extraModulesDocs          bool            // whether to fetch sources / extract docs for extra-dir modules
 	resourceStatusSetFile     string
 	repositoryMetadataSetFile string
 	bazelReleaseSetFile       string
@@ -121,8 +122,10 @@ func (ext *bcrExtension) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.C
 		"registry-url", "", "base URL for the deployed registry")
 	fs.Var(&ext.extraModulesDirs,
 		"extra-modules-dir", "additional modules directory, relative to --registry-root, whose modules are merged into the registry (repeatable, e.g. 'bcr_staging/modules')")
+	fs.BoolVar(&ext.extraModulesDocs,
+		"extra-modules-docs", false, "fetch source archives and extract Starlark docs/packages for modules found in --extra-modules-dir (default: index metadata only)")
 	fs.StringVar(&ext.registrySourceURL,
-		"registry-source-url", "https://registry-preview.bazel.build/registry.pb.gz", "URL to fetch backup registry data from (for repository metadata fallback)")
+		"registry-source-url", "https://registry.bazel.build/registry.pb.gz", "URL to fetch backup registry data from (for repository metadata fallback)")
 	fs.StringVar(&ext.resourceStatusSetFile,
 		"resource-status-set-file", "", "path to resource-status.json file containing cached http statuses for the registry URLs (helpful for development)")
 	fs.StringVar(&ext.repositoryMetadataSetFile,
@@ -200,6 +203,7 @@ func (*bcrExtension) Kinds() map[string]rule.KindInfo {
 	maps.Copy(kinds, gitOverrideKinds())
 	maps.Copy(kinds, archiveOverrideKinds())
 	maps.Copy(kinds, singleVersionOverrideKinds())
+	maps.Copy(kinds, multipleVersionOverrideKinds())
 	maps.Copy(kinds, localPathOverrideKinds())
 	maps.Copy(kinds, repositoryMetadataKinds())
 	maps.Copy(kinds, bazelVersionKinds())
@@ -224,6 +228,7 @@ func (ext *bcrExtension) Loads() []rule.LoadInfo {
 		gitOverrideLoadInfo(),
 		archiveOverrideLoadInfo(),
 		singleVersionOverrideLoadInfo(),
+		multipleVersionOverrideLoadInfo(),
 		localPathOverrideLoadInfo(),
 		repositoryMetadataLoadInfo(),
 		bazelVersionLoadInfo(),
@@ -257,6 +262,8 @@ func (ext *bcrExtension) Imports(c *config.Config, r *rule.Rule, f *rule.File) [
 		return archiveOverrideImports(r)
 	case "single_version_override":
 		return singleVersionOverrideImports(r)
+	case "multiple_version_override":
+		return multipleVersionOverrideImports(r)
 	case "local_path_override":
 		return localPathOverrideImports(r)
 	case "repository_metadata":
@@ -593,6 +600,28 @@ func (ext *bcrExtension) moduleVersionDir(name, version string) string {
 		return dir
 	}
 	return filepath.Join(ext.modulesRoot, name, version)
+}
+
+// isExtraModuleVersion reports whether the module version was discovered under
+// one of the --extra-modules-dir roots rather than the primary modules dir.
+func (ext *bcrExtension) isExtraModuleVersion(id moduleID) bool {
+	dir, ok := ext.moduleVersionDirs[id]
+	if !ok {
+		return false
+	}
+	for _, root := range ext.extraModulesRoots {
+		if strings.HasPrefix(dir, root+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+// skipDocsForModuleVersion reports whether Starlark doc/package extraction
+// (and therefore the source archive fetch) should be skipped for this module
+// version. Extra-dir modules are skipped unless --extra-modules-docs is set.
+func (ext *bcrExtension) skipDocsForModuleVersion(id moduleID) bool {
+	return !ext.extraModulesDocs && ext.isExtraModuleVersion(id)
 }
 
 // stringSliceFlag is a repeatable string flag.
