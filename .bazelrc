@@ -34,7 +34,13 @@ build:ci --nokeep_state_after_build
 build:ci --discard_analysis_cache
 build:ci --worker_max_instances=1
 
-# Prerender tab pool. Local defaults assume 16GB RAM / 10 CPU.
-build:ci --//app/bcr:prerender_pool_size=24
-build:ci --//app/bcr:prerender_tab_max_pages=50
-build:ci --//app/bcr:prerender_warmup_concurrency=8
+# Prerender tab pool. The flag defaults (8 tabs / 27 pages per tab / 4-way
+# warmup) are tuned for a 16GB / 10-CPU box, which is already the runner's
+# memory class, and each tab holds the full inlined registry in its JS heap.
+# Upstream's values for a 96GB self-hosted runner (24 / 50 / 8) took the
+# ubuntu-latest VM down with "runner has received a shutdown signal" during
+# the prerender step. Stay slightly under the defaults to leave room for
+# the Bazel server + worker JVMs that share the machine.
+build:ci --//app/bcr:prerender_pool_size=6
+build:ci --//app/bcr:prerender_tab_max_pages=20
+build:ci --//app/bcr:prerender_warmup_concurrency=3
