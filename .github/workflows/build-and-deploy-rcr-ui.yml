@@ -43,7 +43,7 @@ jobs:
   # pull requests too (as a build check), but the upload/deploy steps are
   # skipped there so a PR can never publish to the live site.
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
 
     - name: Checkout repository and submodules
@@ -57,6 +57,13 @@ jobs:
         bazelisk-cache: true
         disk-cache: false
         repository-cache: true
+        # ubuntu-latest has 16GB RAM; the JVM default of 1/4 (~4GB) is too
+        # small to analyze //data/bazel-central-registry/modules:modules
+        # once the registry grows (it OOMed at ~16k packages / 327k
+        # targets). Startup options can't live under --config, so set the
+        # heap here. Leaves headroom for the prerender browser pool.
+        bazelrc: |
+          startup --host_jvm_args=-Xmx8g
 
     # bcr_init first: bcr_clean aborts unless the submodule is already an
     # initialized git repo. bcr_update then moves it to the registry's latest

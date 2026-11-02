@@ -188,6 +188,14 @@ func (ext *bcrExtension) handleSourceUrlStatus(url string, moduleIDs []moduleID,
 	}
 
 	for _, id := range moduleIDs {
+		// Extra-dir modules (e.g. bcr_staging) are indexed for browsing but,
+		// unless opted in, never become a candidate source repo - not as a
+		// docs root and not as a dependency of one. Many of them are large
+		// C++ trees (qt*, llvm, opencv, ...) that would be fetched and have
+		// every package analyzed for little documentation value.
+		if ext.skipDocsForModuleVersion(id) {
+			continue
+		}
 		moduleSourceProtoRule := ext.moduleSourceRules[id]
 		module := moduleSourceProtoRule.Rule().PrivateAttr(moduleVersionPrivateAttr).(*bzpb.ModuleVersion)
 		// @_builtins docs come from a single RPC call to constellate
@@ -316,6 +324,11 @@ func (ext *bcrExtension) rankBzlRepositoryVersionsForModule(id moduleID, deps mo
 	}
 	// When docs-module-filter is set, skip modules that don't match any prefix
 	if ext.docsModuleFilter != "" && !ext.matchesModuleFilter(id.name()) {
+		return
+	}
+	// Extra-dir modules don't act as docs roots unless opted in, so they
+	// don't pull their own dependency sources into the build either.
+	if ext.skipDocsForModuleVersion(id) {
 		return
 	}
 	// Skip versions that already have docs on the site repo
