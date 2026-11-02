@@ -85,6 +85,17 @@ gazelle(
         "--exclude=.cache",  # exists in CI?
         "--exclude=$HOME",  # exists in CI?
         "--exclude=modules",
+        # Never walk into module-version overlay/ or patches/ trees. Their
+        # contents are integrity-hashed by source.json and must be published
+        # byte-for-byte. Gazelle's load-fixing pass rewrites any BUILD file it
+        # visits, and an overlay BUILD.bazel calling Bazel's *native*
+        # module_version() collides with this extension's rule kind of the
+        # same name - gazelle would inject a bogus
+        # load("//rules:module_version.bzl", ...) and break the hash.
+        # The extension reads overlays via os.Stat / starlark_repository
+        # (which copies the tree), so it does not need them walked.
+        "--exclude=data/bazel-central-registry/**/overlay",
+        "--exclude=data/bazel-central-registry/**/patches",
     ] + ["--exclude=" + dir for dir in bcr_exclude_dirs],
     gazelle = "//:gazelle-bcr",
 )
