@@ -110,13 +110,32 @@ jobs:
         touch ./site/.nojekyll
         tar -xf bazel-bin/app/bcr/release.tar -C ./site
         tar -xzf ./data/bazel-central-registry/bazel-bin/docs/html_docs.tar.gz -C ./site/docs
-        cp -R ./data/bazel-central-registry/bcr_staging/modules/* ./site/modules
-        cp -R ./data/bazel-central-registry/modules/* ./site/modules
+        # Publish registry content from the submodule's *committed* tree, not
+        # its working tree. Bazel verifies every overlay/ and patches/ file
+        # against the integrity hash in source.json, so the served bytes must
+        # be exactly what the registry commit contains. The working tree is
+        # not trustworthy at this point: `bazel run //:bcr` (gazelle) has
+        # walked it and may have rewritten files, and it is littered with
+        # generated BUILD files. `git archive HEAD` sidesteps all of that.
+        # bcr_staging first so a module present in both trees resolves to
+        # the primary modules/ copy, mirroring the indexer.
+        registry_tmp=$(mktemp -d)
+        git -C ./data/bazel-central-registry archive HEAD modules bcr_staging/modules | tar -x -C "$registry_tmp"
+        cp -R "$registry_tmp"/bcr_staging/modules/. ./site/modules/
+        cp -R "$registry_tmp"/modules/. ./site/modules/
+        rm -rf "$registry_tmp"
         echo -e "{\n\t\"mirrors\": []\n}" > ./site/bazel_registry.json
         # GitHub Pages has no SPA rewrite rule, so 404.html is the client-side
         # router's fallback for any route without a prerendered index.html.
         # Mirrors what //rules:ghpages.bzl does when deploying directly.
         cp ./site/index.html ./site/404.html
+
+    # Hard gate: never upload a site whose module files disagree with their
+    # own source.json integrity hashes (or with the registry commit). A single
+    # corrupted overlay/BUILD.bazel on a widely-depended module such as
+    # rosdistro breaks every consumer of the registry.
+    - name: Verify registry integrity
+      run: python3 tools/verify_site_integrity.py ./site/modules --registry ./data/bazel-central-registry
 
     - name: Setup Pages
       if: github.event_name != 'pull_request'
