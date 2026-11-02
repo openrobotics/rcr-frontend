@@ -16,10 +16,25 @@ build --tool_java_runtime_version=21
 # this under a transistion.
 common --noincompatible_disallow_empty_glob
 
-# CI prerender tuning. Local defaults assume 16GB RAM / 10 CPU; CI runners
-# typically have ~96GB / 32 CPU and can sustain a much bigger tab pool
-# without OOM or steady-state CPU contention. Pass `--config=ci` on CI
-# build invocations (e.g. in .github/workflows/*) to apply.
+# CI tuning. Pass `--config=ci` on CI build invocations (see
+# .github/workflows/*). The deploy workflow runs on GitHub-hosted
+# ubuntu-latest (4 vCPU / 16GB RAM), which is *smaller* than a typical dev
+# box, so this config is mostly about staying inside the memory budget:
+#
+# - Analyzing //data/bazel-central-registry/modules:modules needs a large
+#   server heap (set via `startup --host_jvm_args` in the workflow, since
+#   startup options can't live under --config). Once analysis is done that
+#   state is dead weight during execution; don't keep it around.
+# - packagecompiler/bzlcompiler are persistent workers that each spawn a
+#   `java -jar` server with the JVM default heap (1/4 of RAM). Bazel's
+#   default of 4 instances per mnemonic can therefore claim most of the
+#   machine on its own; keep it to one per mnemonic.
+build:ci --notrack_incremental_state
+build:ci --nokeep_state_after_build
+build:ci --discard_analysis_cache
+build:ci --worker_max_instances=1
+
+# Prerender tab pool. Local defaults assume 16GB RAM / 10 CPU.
 build:ci --//app/bcr:prerender_pool_size=24
 build:ci --//app/bcr:prerender_tab_max_pages=50
 build:ci --//app/bcr:prerender_warmup_concurrency=8

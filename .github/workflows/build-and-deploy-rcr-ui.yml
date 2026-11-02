@@ -85,6 +85,12 @@ jobs:
     - name: Build release tarball
       run: bazel build //app/bcr:release --config=ci --//app/bcr:release_type=production
 
+    # The docs step below starts a second Bazel server in the submodule
+    # workspace. Don't leave the first one (and its 8GB heap ceiling) idling
+    # alongside it on a 16GB runner.
+    - name: Shut down Bazel server
+      run: bazel shutdown
+
     # The make targets above sparse-checkout the submodule down to `modules`
     # and `bcr_staging/modules` only, which removes docs/ (and MODULE.bazel, so it stops being its own
     # Bazel workspace). Lift that here - after the parent build is done - so
